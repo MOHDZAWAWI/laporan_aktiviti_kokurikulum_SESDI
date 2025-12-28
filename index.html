@@ -1,0 +1,191 @@
+const generatePDF = async () => {
+  if (!libStatus.jspdf || !libStatus.autotable) return;
+  setIsGenerating(true);
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let y = 8;
+
+    // ================= LOGO =================
+    const logo = await getBase64FromUrl(schoolLogoUrl);
+    if (logo) {
+      doc.addImage(logo, "PNG", pageWidth / 2 - 8, y, 16, 16);
+      y += 20;
+    }
+
+    // ================= TAJUK =================
+    doc.setFont("helvetica", "bold")
+      .setFontSize(10)
+      .setTextColor(30, 58, 138);
+    doc.text(formData.jenisLaporan, pageWidth / 2, y, { align: "center" });
+    y += 4;
+
+    doc.setDrawColor(30, 58, 138).setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 1;
+    doc.setLineWidth(0.15);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
+
+    // ================= MAKLUMAT =================
+    doc.setFontSize(8.5).setTextColor(0);
+
+    const drawInfo = (label, value, x, yPos, labelW = 30) => {
+      doc.setFont("helvetica", "bold").text(label, x, yPos);
+      doc.text(":", x + labelW, yPos);
+      doc.setFont("helvetica", "normal").text(value || "-", x + labelW + 3, yPos);
+    };
+
+    drawInfo("PERJUMPAAN KALI", formData.perjumpaanKali, margin, y);
+    y += 5;
+    drawInfo("TARIKH", formatDateDisplay(formData.tarikh), margin, y);
+    drawInfo("HARI", formData.hari, margin + 100, y, 15);
+    y += 5;
+    drawInfo("MASA", formData.masa, margin, y);
+    drawInfo("TEMPAT", formData.tempat, margin + 100, y, 15);
+    y += 7;
+
+    // ================= JADUAL GURU =================
+    doc.autoTable({
+      startY: y,
+      head: [["Bil.", "Nama Guru Penasihat", "Tandatangan"]],
+      body: guruAktif.length
+        ? guruAktif.map((n, i) => [i + 1, n.toUpperCase(), ""])
+        : [["-", "TIADA MAKLUMAT", ""]],
+      margin: { left: margin, right: margin },
+      theme: "grid",
+      headStyles: {
+        fillColor: [30, 58, 138],
+        fontSize: 7.5,
+        textColor: 255,
+        halign: "center"
+      },
+      styles: { fontSize: 7.5, cellPadding: 1.5 }
+    });
+
+    y = doc.lastAutoTable.finalY + 6;
+
+    // ================= KEHADIRAN =================
+    doc.setFont("helvetica", "bold")
+      .setFontSize(8)
+      .setTextColor(30, 58, 138);
+    doc.text("KEHADIRAN MURID:", margin, y);
+    y += 4;
+
+    const frameW = (pageWidth - margin * 2 - 10) / 3;
+    const frameH = 12;
+
+    const drawFrame = (title, value, x) => {
+      doc.setDrawColor(30, 58, 138).setFillColor(245, 247, 255);
+      doc.roundedRect(x, y, frameW, frameH, 1, 1, "FD");
+      doc.setFontSize(6.5).setTextColor(100);
+      doc.text(title, x + frameW / 2, y + 4, { align: "center" });
+      doc.setFontSize(9).setTextColor(30, 58, 138);
+      doc.text(value || "0", x + frameW / 2, y + 9.5, { align: "center" });
+    };
+
+    drawFrame("LELAKI", totals.lelaki, margin);
+    drawFrame("PEREMPUAN", totals.perempuan, margin + frameW + 5);
+    drawFrame("JUMLAH", totals.jumlah, margin + (frameW + 5) * 2);
+
+    y += frameH + 8;
+
+    // ================= SEKSYEN TEKS =================
+    const addSection = (title, content) => {
+      doc.setFont("helvetica", "bold")
+        .setFontSize(8)
+        .setTextColor(30, 58, 138);
+      doc.text(`${title}:`, margin, y);
+      y += 4;
+      doc.setFont("helvetica", "normal")
+        .setFontSize(8)
+        .setTextColor(0);
+      const lines = doc.splitTextToSize(content || "-", pageWidth - margin * 2);
+      doc.text(lines, margin, y);
+      y += lines.length * 4 + 5;
+    };
+
+    addSection("Nilai Sivik (10 Minit)", formData.nilaiSivik);
+    addSection("Aktiviti Dijalankan", formData.aktivitiDijalankan);
+    addSection("Refleksi dan Impak", formData.refleksiImpak);
+
+    // ================= GAMBAR =================
+    if (images[0] || images[1]) {
+      doc.setFont("helvetica", "bold")
+        .setFontSize(8)
+        .setTextColor(30, 58, 138);
+      doc.text("LAMPIRAN GAMBAR:", margin, y);
+      y += 4;
+
+      const imgW = (pageWidth - margin * 2 - 8) / 2;
+      const imgH = imgW * 0.6;
+
+      if (images[0]) doc.addImage(images[0], "JPEG", margin, y, imgW, imgH);
+      if (images[1])
+        doc.addImage(images[1], "JPEG", margin + imgW + 8, y, imgW, imgH);
+    }
+
+    // ================= TANDATANGAN =================
+    const sigY = pageHeight - 35;
+    const colW = (pageWidth - margin * 2) / 3;
+
+    const drawSig = (label, name, jawatan, x) => {
+      doc.setFontSize(7).setTextColor(0);
+      doc.text(label, x, sigY);
+      doc.line(x, sigY + 12, x + colW - 5, sigY + 12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`(${name || "....................."})`, x, sigY + 16);
+      doc.setFont("helvetica", "normal").setFontSize(6);
+      doc.text(jawatan || "", x, sigY + 20);
+    };
+
+    drawSig("Disediakan oleh,", formData.disediakanOleh, formData.jawatanDisediakan, margin);
+    drawSig("Disemak oleh,", formData.disemakOleh, formData.jawatanDisemak, margin + colW);
+    drawSig("Disahkan oleh,", formData.disahkanOleh, formData.jawatanDisahkan, margin + colW * 2);
+
+    // ================= SIMPAN KE DRIVE + DOWNLOAD =================
+    const pdfBlob = doc.output("blob");
+    const reader = new FileReader();
+
+    reader.readAsDataURL(pdfBlob);
+    reader.onloadend = async () => {
+      const base64 = reader.result.split(",")[1];
+
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbxT8KFk2Hzeji4Xr3487rsGnsOlHlM0tpA2Yk97OiRMU_RX2izM746fTXiL2DGscAyn/exec";
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: `Laporan_Koku_${formData.tarikh || "Baru"}.pdf`,
+            base64
+          })
+        });
+
+        if (response.ok) {
+          alert("✅ Berjaya disimpan ke Google Drive!");
+        } else {
+          alert("⚠️ PDF dijana tetapi gagal disimpan ke Drive.");
+        }
+      } catch (error) {
+        console.error("Ralat simpan Drive:", error);
+        alert("❌ Ralat sambungan. PDF tidak berjaya disimpan ke Drive.");
+      }
+
+      // ⬇️ Download ke komputer
+      doc.save(`Laporan_Koku_${formData.tarikh || "Baru"}.pdf`);
+    };
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setIsGenerating(false);
+  }
+};
