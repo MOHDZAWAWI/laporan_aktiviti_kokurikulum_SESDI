@@ -1,545 +1,491 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Download, 
-  Trash2, 
-  FileText,
-  Camera
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Aktiviti Kokurikulum - SK Seri Bandi 2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-custom { animation: spin 1s linear infinite; }
+    
+    /* Hilangkan arrow pada input number */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
 
-const App = () => {
-  const [formData, setFormData] = useState({
-    jenisLaporan: 'LAPORAN AKTIVITI BADAN BERUNIFORM',
-    perjumpaanKali: '',
-    tarikh: '',
-    hari: '',
-    masa: '',
-    tempat: '',
-    guruHadir: Array(8).fill(''),
-    hadirLelaki: '',
-    totalLelaki: '',
-    hadirPerempuan: '',
-    totalPerempuan: '',
-    nilaiSivik: '',
-    aktivitiDijalankan: '',
-    refleksiImpak: '',
-    disediakanOleh: '',
-    jawatanDisediakan: 'GURU PENASIHAT',
-    disemakOleh: 'WAN MOHD SABRI BIN WAN HASSAN',
-    jawatanDisemak: 'PENYELARAS BADAN BERUNIFORM',
-    disahkanOleh: 'MOHAMAD BIN ALI',
-    jawatanDisahkan: 'PK KOKURIKULUM'
-  });
-
-  const [images, setImages] = useState([null, null]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [libStatus, setLibStatus] = useState({ jspdf: false, autotable: false });
-
-  const schoolLogoUrl = "https://i.postimg.cc/bw5gx6Qd/LOGO_SESDI_removebg_preview.png";
-
-  const nilaiSivikOptions = [
-    "TANGGUNGJAWAB",
-    "KASIH SAYANG",
-    "HORMAT-MENGHORMATI",
-    "KEBAHAGIAAN"
-  ];
-
-  const jenisLaporanOptions = [
-    "LAPORAN AKTIVITI BADAN BERUNIFORM",
-    "LAPORAN AKTIVITI KELAB DAN PERSATUAN",
-    "LAPORAN AKTIVITI SUKAN DAN PERMAINAN",
-    "LAPORAN AKTIVITI RUMAH SUKAN"
-  ];
-
-  const masaOptions = [
-    "1.00 PM - 3.00 PM",
-    "1.30 PM - 3.30 PM",
-    "1.45 PM - 3.45 PM",
-    "2.00 PM - 4.00 PM",
-    "2.30 PM - 4.30 PM",
-    "3.00 PM - 5.00 PM",
-    "5.00 PM - 6.00 PM",
-    "8.00 AM - 10.00 AM",
-    "10.00 AM - 12.00 PM"
-  ];
-
-  const formatDateDisplay = (dateString) => {
-    if (!dateString) return '-';
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
-  const getMalayDay = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const days = ["AHAD", "ISNIN", "SELASA", "RABU", "KHAMIS", "JUMAAT", "SABTU"];
-    return days[date.getDay()];
-  };
-
-  const mapPenyelarasData = (jenis) => {
-    switch (jenis) {
-      case "LAPORAN AKTIVITI BADAN BERUNIFORM": 
-        return { nama: "WAN MOHD SABRI BIN WAN HASSAN", jawatan: "PENYELARAS BADAN BERUNIFORM" };
-      case "LAPORAN AKTIVITI KELAB DAN PERSATUAN": 
-        return { nama: "NOR AMIRAH BINTI ABDUL HAMID", jawatan: "PENYELARAS KELAB DAN PERSATUAN" };
-      case "LAPORAN AKTIVITI SUKAN DAN PERMAINAN": 
-        return { nama: "AZHAR BIN AHMAD", jawatan: "PENYELARAS SUKAN DAN PERMAINAN" };
-      case "LAPORAN AKTIVITI RUMAH SUKAN": 
-        return { nama: "IBRAHIM BIN MOHD ZIN", jawatan: "PENYELARAS RUMAH SUKAN" };
-      default: 
-        return { nama: "", jawatan: "PENYELARAS KOKURIKULUM" };
+    /* Gaya khusus untuk placeholder */
+    input::placeholder, textarea::placeholder {
+      font-size: 0.9rem;
+      opacity: 0.2;
+      font-weight: 700;
+      color: #64748b;
     }
-  };
+    
+    .scale-in { animation: scaleIn 0.2s ease-out; }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body class="bg-[#f8fafc] min-h-screen text-slate-800">
 
-  const totals = useMemo(() => {
-    const hL = parseInt(formData.hadirLelaki) || 0;
-    const hP = parseInt(formData.hadirPerempuan) || 0;
-    const tL = parseInt(formData.totalLelaki) || 0;
-    const tP = parseInt(formData.totalPerempuan) || 0;
-    return {
-      lelaki: `${hL}/${tL}`,
-      perempuan: `${hP}/${tP}`,
-      jumlah: `${hL + hP}/${tL + tP}`
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const Icon = ({ name, size = 20, className = "" }) => {
+      const icons = {
+        trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>,
+        camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></>,
+        loader: <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>,
+        check: <polyline points="20 6 9 17 4 12" />,
+        alert: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+        download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>,
+        cloud: <path d="M17.5 19a5.5 5.5 0 0 0 2.5-105 8.5 8.5 0 1 0-15.5 1.5A7 7 0 1 0 5 20h12.5"/>
+      };
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          {icons[name] || null}
+        </svg>
+      );
     };
-  }, [formData]);
 
-  const guruAktif = useMemo(() => {
-    return formData.guruHadir.filter(name => name.trim() !== "");
-  }, [formData.guruHadir]);
+    const App = () => {
+      const [libStatus, setLibStatus] = useState({ jspdf: false, autotable: false });
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+      const [images, setImages] = useState([]);
+      const [notification, setNotification] = useState(null); 
 
-  useEffect(() => {
-    const jsPdfScript = document.createElement('script');
-    jsPdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    jsPdfScript.async = true;
-    jsPdfScript.onload = () => {
-      setLibStatus(prev => ({ ...prev, jspdf: true }));
-      const autoTableScript = document.createElement('script');
-      autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js';
-      autoTableScript.async = true;
-      autoTableScript.onload = () => {
-        setLibStatus(prev => ({ ...prev, autotable: true }));
-      };
-      document.body.appendChild(autoTableScript);
-    };
-    document.body.appendChild(jsPdfScript);
-  }, []);
+      const schoolLogoUrl = "https://i.postimg.cc/bw5gx6Qd/LOGO_SESDI_removebg_preview.png";
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'jenisLaporan') {
-      const dataPenyelaras = mapPenyelarasData(value);
-      setFormData(prev => ({ 
-        ...prev, 
-        [name]: value, 
-        disemakOleh: dataPenyelaras.nama,
-        jawatanDisemak: dataPenyelaras.jawatan 
-      }));
-    } else if (name === 'tarikh') {
-      setFormData(prev => ({ ...prev, [name]: value, hari: getMalayDay(value) }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const getBase64FromUrl = async (url) => {
-    try {
-      const data = await fetch(url);
-      const blob = await data.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob); 
-        reader.onloadend = () => resolve(reader.result);
+      const [formData, setFormData] = useState({
+        jenisLaporan: '', perjumpaanKali: '', tarikh: '', hari: '', masa: '1.45 - 3.45 PETANG', tempat: '',
+        guruHadir: Array(8).fill(''), 
+        hadirLelaki: '', totalLelaki: '', hadirPerempuan: '', totalPerempuan: '',
+        nilaiSivik: '', aktivitiDijalankan: '', refleksiImpak: '',
+        disediakanOleh: '', jawatanDisediakan: 'GURU PENASIHAT',
+        disemakOleh: 'PENYELARAS UNIT', jawatanDisemak: 'PENYELARAS KOKURIKULUM',
+        disahkanOleh: 'MOHAMAD BIN ALI', jawatanDisahkan: 'PK KOKURIKULUM'
       });
-    } catch (e) { return null; }
-  };
 
-  const generatePDF = async () => {
-    if (!libStatus.jspdf || !libStatus.autotable) return;
-    setIsGenerating(true);
+      const senaraiGuru = [
+        "ABU KASSIM BIN ALI", "AZHAR BIN AHMAD", "FYAIZUL SAZRY BIN SAIDIN", "IBRAHIM BIN MOHD ZIN",
+        "MARZUKI BIN MOKHTAR", "MOHD AZIZI BIN ABDUL RAHMAN", "MOHD SYAZWAN BIN ISMAIL", "MOHD ZAWAWI BIN MOHD AMIN",
+        "MUHAMMAD IRFAN BIN AZMAN", "NIK MUHAMMAD NURAFZA BIN MAD ZAID", "WAN MOHD SABRI BIN WAN HASSAN",
+        "AINUN MARDHIAH BINTI KAMARUZAMAN", "FIRMILIA BINTI AFFANDI", "MAIZATUL AKMAL BINTI AB KARIM @ A BAKAR",
+        "NAJIHAH BINTI A. ZAMANI", "NAWARIAH BINTI ABD MAJID", "NOOR HIDAYU BINTI BULIAMI", "NOR AMIRAH BINTI ABDUL HAMID",
+        "NOR‘AINI BINTI TAHIR @ MOHAMED", "NOR RAINA BINTI AHMAD", "NORDIANA AZIYATI BINTI ABDULLAH",
+        "NURIZAIDAWATY BINTI MD NAWI", "ROBAIYYAH BINTI ALIAS", "ROSLINA BINTI A HAZAH", "SITI AISHAH BINTI MOHD SUBRI",
+        "SITI RUQIYAH BINTI ABDUL HAMID", "UMI SUMAYYAH BINTI MOHD ZAID", "WAN NURUL INSYIRAH BINTI WAN AZHAR", "ZABIDAH BINTI YAHYA"
+      ].sort();
 
-    try {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 15;
-      let y = 8;
+      const senaraiNilaiSivik = [
+        "Kasih Sayang", "Hormat-menghormati", "Bertanggungjawab", "Kegembiraan"
+      ];
 
-      const logo = await getBase64FromUrl(schoolLogoUrl);
-      if (logo) {
-        doc.addImage(logo, 'PNG', (pageWidth/2)-8, y, 16, 16);
-        y += 20;
-      }
-
-      doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(30, 58, 138);
-      doc.text(formData.jenisLaporan, pageWidth/2, y, { align: 'center' });
-      y += 4; 
-      
-      doc.setDrawColor(30, 58, 138).setLineWidth(0.5).line(margin, y, pageWidth-margin, y);
-      y += 1;
-      doc.setLineWidth(0.15).line(margin, y, pageWidth-margin, y);
-      y += 6;
-
-      doc.setFontSize(8.5).setTextColor(0, 0, 0);
-      const drawInfo = (label, val, x, yPos, labelW = 30) => {
-        doc.setFont("helvetica", "bold").text(label, x, yPos);
-        doc.text(":", x + labelW, yPos);
-        doc.setFont("helvetica", "normal").text(val || '-', x + labelW + 3, yPos);
-      };
-
-      drawInfo("PERJUMPAAN KALI", formData.perjumpaanKali, margin, y);
-      y += 5;
-      drawInfo("TARIKH", formatDateDisplay(formData.tarikh), margin, y);
-      drawInfo("HARI", formData.hari, margin + 100, y, 15);
-      y += 5;
-      drawInfo("MASA", formData.masa, margin, y);
-      drawInfo("TEMPAT", formData.tempat, margin + 100, y, 15);
-      y += 7;
-
-      doc.autoTable({
-        startY: y,
-        head: [['Bil.', 'Nama Guru Penasihat', 'Tandatangan']],
-        body: guruAktif.length > 0 ? guruAktif.map((n, i) => [i+1, n.toUpperCase(), '']) : [['-', 'TIADA MAKLUMAT', '']],
-        margin: { left: margin, right: margin },
-        theme: 'grid',
-        headStyles: { fillColor: [30, 58, 138], fontSize: 7.5, halign: 'center', textColor: 255 },
-        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [200, 200, 200] },
-        columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 2: { cellWidth: 35 } }
-      });
-      y = doc.lastAutoTable.finalY + 6;
-
-      doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(30, 58, 138);
-      doc.text("KEHADIRAN MURID:", margin, y);
-      y += 3;
-
-      const frameW = (pageWidth - (margin * 2) - 10) / 3;
-      const frameH = 12;
-
-      const drawFrame = (title, val, x) => {
-        doc.setDrawColor(30, 58, 138).setLineWidth(0.2).setFillColor(245, 247, 255);
-        doc.roundedRect(x, y, frameW, frameH, 1, 1, 'FD');
-        doc.setFont("helvetica", "bold").setFontSize(6.5).setTextColor(100, 100, 100);
-        doc.text(title, x + (frameW/2), y + 4, { align: 'center' });
-        doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(30, 58, 138);
-        doc.text(val, x + (frameW/2), y + 9.5, { align: 'center' });
-      };
-
-      drawFrame("LELAKI", totals.lelaki, margin);
-      drawFrame("PEREMPUAN", totals.perempuan, margin + frameW + 5);
-      drawFrame("JUMLAH", totals.jumlah, margin + (frameW + 5) * 2);
-      
-      y += frameH + 8;
-
-      const addSection = (title, content, currentY) => {
-        doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(30, 58, 138);
-        doc.text(title.toUpperCase() + ":", margin, currentY);
-        currentY += 4;
-        doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(0, 0, 0);
-        const lines = doc.splitTextToSize(content || '-', pageWidth - (margin*2) - 4);
-        doc.text(lines, margin + 2, currentY);
-        return currentY + (lines.length * 4) + 5;
-      };
-
-      y = addSection("Nilai Sivik (10 Minit)", formData.nilaiSivik, y);
-      y = addSection("Aktiviti yang dijalankan", formData.aktivitiDijalankan, y);
-      y = addSection("Refleksi dan Impak", formData.refleksiImpak, y);
-
-      if (images[0] || images[1]) {
-        y += 2;
-        doc.setFont("helvetica", "bold").setFontSize(8).setTextColor(30, 58, 138);
-        doc.text("LAMPIRAN GAMBAR AKTIVITI:", margin, y);
-        y += 2;
-        const imgW = (pageWidth - (margin * 2) - 8) / 2;
-        const imgH = imgW * 0.6;
-        
-        const renderImg = (data, x) => {
-          if (!data) return;
-          doc.setDrawColor(220, 220, 220).setFillColor(250, 250, 250);
-          doc.roundedRect(x, y, imgW, imgH, 1, 1, 'FD');
-          doc.addImage(data, 'JPEG', x + 1, y + 1, imgW - 2, imgH - 2);
+      useEffect(() => {
+        const loadScript = (src) => {
+          return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
+            document.body.appendChild(s);
+          });
         };
-        renderImg(images[0], margin);
-        renderImg(images[1], margin + imgW + 8);
-      }
 
-      const sigY = doc.internal.pageSize.getHeight() - 35;
-      const colW = (pageWidth - (margin*2)) / 3;
-      const drawSig = (label, name, jawatan, x) => {
-        doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(0,0,0);
-        doc.text(label, x, sigY);
-        doc.line(x, sigY + 12, x + colW - 5, sigY + 12);
-        doc.setFont("helvetica", "bold").text(name ? `(${name.toUpperCase()})` : "(...........................................)", x, sigY + 16);
-        doc.setFont("helvetica", "normal").setFontSize(6).text(jawatan, x, sigY + 19.5, { maxWidth: colW - 5 });
+        const initLibs = async () => {
+          try {
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+            setLibStatus(prev => ({ ...prev, jspdf: true }));
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js');
+            setLibStatus(prev => ({ ...prev, autotable: true }));
+          } catch (err) {
+            console.error("Gagal memuatkan pustaka PDF");
+          }
+        };
+
+        initLibs();
+      }, []);
+
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'jenisLaporan') {
+          let p = { nama: "PENYELARAS UNIT", jawatan: "PENYELARAS KOKURIKULUM" };
+          if (value.includes("BADAN BERUNIFORM")) p = { nama: "WAN MOHD SABRI BIN WAN HASSAN", jawatan: "PENYELARAS BADAN BERUNIFORM" };
+          else if (value.includes("KELAB")) p = { nama: "NOR AMIRAH BINTI ABDUL HAMID", jawatan: "PENYELARAS KELAB/PERSATUAN" };
+          else if (value.includes("SUKAN DAN PERMAINAN")) p = { nama: "AZHAR BIN AHMAD", jawatan: "PENYELARAS SUKAN/PERMAINAN" };
+          else if (value.includes("RUMAH SUKAN")) p = { nama: "IBRAHIM BIN MOHD ZIN", jawatan: "PENYELARAS RUMAH SUKAN" };
+          setFormData(prev => ({ ...prev, [name]: value, disemakOleh: p.nama, jawatanDisemak: p.jawatan }));
+        } else if (name === 'tarikh') {
+          const days = ["AHAD", "ISNIN", "SELASA", "RABU", "KHAMIS", "JUMAAT", "SABTU"];
+          setFormData(prev => ({ ...prev, [name]: value, hari: days[new Date(value).getDay()] || '' }));
+        } else {
+          setFormData(prev => ({ ...prev, [name]: value }));
+        }
       };
 
-      drawSig("Disediakan oleh,", formData.disediakanOleh, formData.jawatanDisediakan, margin);
-      drawSig("Disemak oleh,", formData.disemakOleh, formData.jawatanDisemak, margin + colW);
-      drawSig("Disahkan oleh,", formData.disahkanOleh, formData.jawatanDisahkan, margin + (colW*2));
+      const handleGuruChange = (index, value) => {
+        const newGuru = [...formData.guruHadir];
+        newGuru[index] = value;
+        setFormData(prev => ({ ...prev, guruHadir: newGuru }));
+      };
 
-      doc.save(`Laporan_Koku_${formData.tarikh || 'Baru'}.pdf`);
-    } catch (e) { console.error(e); } finally { setIsGenerating(false); }
-  };
+      const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (images.length + files.length > 2) {
+          setNotification({ type: 'error', message: 'Maksimum hanya 2 keping gambar sahaja dibenarkan.', btnText: 'OK' });
+          return;
+        }
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (event) => setImages(prev => prev.length < 2 ? [...prev, event.target.result] : prev);
+          reader.readAsDataURL(file);
+        });
+      };
 
-  return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 flex flex-col items-center font-sans text-slate-900">
-      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Bahagian Borang Input */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-            {/* Header dengan Gradient & Logo Berbingkai Ikut Bentuk */}
-            <header className="bg-gradient-to-br from-blue-700 via-blue-900 to-indigo-900 p-8 text-white flex flex-col items-center gap-4 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl"></div>
-              
-              <div className="relative z-10">
-                {/* Logo dengan Drop Shadow Putih (Bingkai Ikut Bentuk) */}
-                <img 
-                  src={schoolLogoUrl} 
-                  alt="Logo Sekolah" 
-                  className="w-24 h-24 object-contain transition-transform hover:scale-110 duration-300"
-                  style={{ 
-                    filter: 'drop-shadow(2px 2px 0 white) drop-shadow(-2px -2px 0 white) drop-shadow(2px -2px 0 white) drop-shadow(-2px 2px 0 white)' 
-                  }} 
-                />
+      const getFileName = () => {
+        const name = formData.disediakanOleh ? formData.disediakanOleh.replace(/\s+/g, '_').toUpperCase() : 'LAPORAN';
+        const date = formData.tarikh || 'BARU';
+        return `LAPORAN_KOKU_${name}_${date}.pdf`;
+      };
+
+      const createPDFInstance = async () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15; 
+        let currentY = 4;
+
+        try { doc.addImage(schoolLogoUrl, 'PNG', (pageWidth/2) - 10, currentY, 20, 20); currentY += 24; } catch(e) { currentY += 5; }
+        doc.setFont("helvetica", "bold").setFontSize(10.5).text(formData.jenisLaporan, pageWidth/2, currentY, { align: 'center' });
+        currentY += 4;
+        doc.setDrawColor(0).setLineWidth(0.5).line(margin, currentY, pageWidth-margin, currentY);
+        currentY += 8;
+
+        const drawField = (label, value, x, y) => {
+          doc.setFont("helvetica", "bold").setFontSize(9).text(label, x, y);
+          doc.text(":", x + 38, y); 
+          doc.setFont("helvetica", "normal").text(value || '-', x + 41, y);
+        };
+        drawField("PERJUMPAAN KALI", formData.perjumpaanKali, margin, currentY);
+        drawField("TARIKH", formData.tarikh ? formData.tarikh.split('-').reverse().join('/') : '', margin + 95, currentY);
+        currentY += 6;
+        drawField("HARI", formData.hari, margin, currentY);
+        drawField("MASA", formData.masa, margin + 95, currentY);
+        currentY += 6;
+        drawField("TEMPAT", formData.tempat, margin, currentY);
+        currentY += 8;
+
+        const guruAktif = formData.guruHadir.filter(n => n.trim() !== "");
+        const rows = [];
+        for (let i = 0; i < 4; i++) rows.push([guruAktif[i] || "", "", guruAktif[i+4] || "", ""]);
+        doc.autoTable({
+          startY: currentY,
+          head: [['Nama Guru Penasihat', 'T/Tangan', 'Nama Guru Penasihat', 'T/Tangan']],
+          body: rows,
+          theme: 'grid',
+          headStyles: { fillColor: [40, 40, 40], fontSize: 8, halign: 'center' },
+          styles: { fontSize: 8 },
+          margin: { left: margin, right: margin }
+        });
+        currentY = doc.lastAutoTable.finalY + 6;
+
+        doc.setFont("helvetica", "bold").setFontSize(9).text("KEHADIRAN MURID", margin, currentY);
+        currentY += 4;
+        const boxW = (pageWidth - (margin*2) - 10) / 3;
+        const totalHadir = Number(formData.hadirLelaki || 0) + Number(formData.hadirPerempuan || 0);
+        const totalSemua = Number(formData.totalLelaki || 0) + Number(formData.totalPerempuan || 0);
+
+        [{ l: "LELAKI", v: `${formData.hadirLelaki || 0} / ${formData.totalLelaki || 0}` }, 
+         { l: "PEREMPUAN", v: `${formData.hadirPerempuan || 0} / ${formData.totalPerempuan || 0}` }, 
+         { l: "JUMLAH", v: `${totalHadir} / ${totalSemua}` }].forEach((s, i) => {
+          doc.setDrawColor(180).rect(margin + i*(boxW+5), currentY, boxW, 10);
+          doc.setFontSize(7).text(s.l, margin + i*(boxW+5) + boxW/2, currentY + 4, { align: 'center' });
+          doc.setFontSize(9).text(s.v, margin + i*(boxW+5) + boxW/2, currentY + 8, { align: 'center' });
+        });
+        currentY += 16;
+
+        const writeSection = (title, content, maxLines = 4) => {
+          doc.setFont("helvetica", "bold").setFontSize(9).text(title, margin, currentY);
+          currentY += 4; doc.setFont("helvetica", "normal");
+          const lines = doc.splitTextToSize(content || '-', pageWidth - (margin*2));
+          const toShow = lines.slice(0, maxLines);
+          doc.text(toShow, margin, currentY);
+          currentY += (toShow.length * 5) + 4;
+        };
+        writeSection("NILAI SIVIK:", formData.nilaiSivik, 1);
+        writeSection("AKTIVITI DIJALANKAN:", formData.aktivitiDijalankan, 6);
+        writeSection("REFLEKSI / IMPAK:", formData.refleksiImpak, 4);
+
+        if (images.length > 0) {
+          const iw = 75; const ih = 40; const gap = 10;
+          const totalW = (images.length * iw) + ((images.length - 1) * gap);
+          let startImgX = (pageWidth - totalW) / 2;
+          images.forEach((img, idx) => {
+            const x = startImgX + (idx * (iw + gap));
+            doc.setDrawColor(0).roundedRect(x, currentY, iw, ih, 1, 1, 'S');
+            try { doc.addImage(img, 'JPEG', x + 0.5, currentY + 0.5, iw - 1, ih - 1); } catch(e) {}
+          });
+        }
+
+        const bottomY = pageHeight - 40; 
+        const printableWidth = pageWidth - (margin * 2);
+        const col1X = margin;
+        const col2X = margin + (printableWidth * 0.30);
+        const col3X = margin + (printableWidth * 0.65);
+        const drawSignature = (label, name, title, x, maxW) => {
+          doc.setFontSize(8).setFont("helvetica", "normal").text(label + " oleh:", x, bottomY);
+          doc.setFont("helvetica", "bold").setFontSize(9).text(`(${name.toUpperCase()})`, x, bottomY + 18);
+          doc.setFont("helvetica", "normal").setFontSize(7).text(title, x, bottomY + 22, { maxWidth: maxW });
+        };
+        drawSignature("Disediakan", formData.disediakanOleh, "GURU PENASIHAT", col1X, (printableWidth * 0.28));
+        drawSignature("Disemak", formData.disemakOleh, formData.jawatanDisemak, col2X, (printableWidth * 0.32));
+        drawSignature("Disahkan", formData.disahkanOleh, formData.jawatanDisahkan, col3X, (printableWidth * 0.35));
+
+        return doc;
+      };
+
+      const handleSavePDF = async () => {
+        if (!formData.jenisLaporan || !formData.disediakanOleh) {
+            setNotification({ type: 'error', message: 'Sila lengkapkan laporan dan pilih nama guru penyedia.', btnText: 'OK' });
+            return;
+        }
+        setIsGenerating(true);
+        try {
+          const doc = await createPDFInstance();
+          doc.save(getFileName());
+        } catch (err) {
+          setNotification({ type: 'error', message: 'Ralat menjana PDF.', btnText: 'OK' });
+        }
+        setIsGenerating(false);
+      };
+
+      const handleDriveSave = async () => {
+        if (!libStatus.jspdf || !libStatus.autotable) return;
+        if (!formData.jenisLaporan || !formData.disediakanOleh) {
+            setNotification({ type: 'error', message: 'Sila lengkapkan laporan sebelum menyimpan ke Drive.', btnText: 'OK' });
+            return;
+        }
+
+        setIsSavingToDrive(true);
+        try {
+          const doc = await createPDFInstance();
+          const pdfBase64 = doc.output('datauristring').split(',')[1];
+          const fileName = getFileName();
+          const webAppUrl = 'https://script.google.com/macros/s/AKfycbwBxAOWGtwoZohYErXOivknU_rDiLDFugwzHpoHcv-Q0rOu8zJxxta4PEJZ6Sr6BlhX/exec'; 
+
+          await fetch(webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdfBase64, fileName })
+          });
+
+          setNotification({ 
+            type: 'success', 
+            message: `LAPORAN AKTIVITI telah berjaya dihantar ke Google Drive.`,
+            btnText: 'OK'
+          });
+
+        } catch (e) { 
+          setNotification({ type: 'error', message: 'Gagal menghantar ke Google Drive.', btnText: 'OK' });
+        } finally { 
+          setIsSavingToDrive(false); 
+        }
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto my-0 md:my-10 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-none md:rounded-[2.5rem] overflow-hidden">
+          
+          {notification && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+              <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl scale-in">
+                <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-4 ${notification.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                  <Icon name={notification.type === 'success' ? 'check' : 'alert'} size={28} />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-slate-900">{notification.type === 'success' ? 'Berjaya' : 'Maklumat'}</h3>
+                <p className="text-slate-500 text-sm mb-6 leading-relaxed">{notification.message}</p>
+                <button onClick={() => setNotification(null)} className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-colors">{notification.btnText || 'OK'}</button>
               </div>
-              
-              <div className="text-center z-10 mt-2">
-                <h1 className="font-extrabold uppercase tracking-widest text-base drop-shadow-md">
-                  LAPORAN AKTIVITI KOKURIKULUM SESDI
-                </h1>
-                <div className="h-1 w-12 bg-yellow-400 mx-auto mt-2 rounded-full"></div>
-              </div>
-            </header>
+            </div>
+          )}
 
-            <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Maklumat Asas</label>
-                <select name="jenisLaporan" value={formData.jenisLaporan} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
-                  {jenisLaporanOptions.map((o, i) => <option key={i} value={o}>{o}</option>)}
+          <header className="relative bg-slate-900 text-white pt-10 pb-12 px-6 text-center border-b-4 border-indigo-500">
+            <img src={schoolLogoUrl} alt="Logo" className="w-20 h-20 mx-auto mb-5 drop-shadow-xl" />
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight mb-2">LAPORAN AKTIVITI KOKURIKULUM</h1>
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-[0.3em]">SK Seri Bandi 2</h2>
+          </header>
+
+          <div className="p-6 md:p-10 space-y-10">
+            <div className="space-y-6">
+              <div>
+                <select name="jenisLaporan" value={formData.jenisLaporan} onChange={handleInputChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all text-sm shadow-sm">
+                  <option value="">- PILIH LAPORAN -</option>
+                  <option>LAPORAN AKTIVITI BADAN BERUNIFORM</option>
+                  <option>LAPORAN AKTIVITI KELAB DAN PERSATUAN</option>
+                  <option>LAPORAN AKTIVITI SUKAN DAN PERMAINAN</option>
+                  <option>LAPORAN AKTIVITI RUMAH SUKAN</option>
                 </select>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Bil. Perjumpaan</span>
-                    <input type="text" name="perjumpaanKali" placeholder="CONTOH: 1" value={formData.perjumpaanKali} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Tarikh</span>
-                    <input type="date" name="tarikh" value={formData.tarikh} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Hari</span>
-                    <input type="text" name="hari" value={formData.hari} readOnly placeholder="AUTO" className="w-full p-3 border rounded-xl text-sm bg-blue-50/50 font-bold text-blue-900 border-blue-100" />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Masa</span>
-                    <select name="masa" value={formData.masa} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500">
-                      <option value="">-- PILIH MASA --</option>
-                      {masaOptions.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Tempat</span>
-                  <input type="text" name="tempat" placeholder="LOKASI AKTIVITI" value={formData.tempat} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
-                </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Guru Penasihat</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {formData.guruHadir.map((g, i) => (
-                    <input key={i} type="text" placeholder={`NAMA GURU ${i+1}`} value={g} onChange={(e) => {
-                      const updated = [...formData.guruHadir];
-                      updated[i] = e.target.value;
-                      setFormData(prev => ({ ...prev, guruHadir: updated }));
-                    }} className="p-2 border rounded-lg text-xs uppercase focus:ring-1 focus:ring-blue-500 outline-none" />
-                  ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Bil. Perjumpaan</label>
+                  <input type="number" name="perjumpaanKali" value={formData.perjumpaanKali} onChange={handleInputChange} className="w-full bg-transparent font-black text-lg outline-none" placeholder="0" />
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Tarikh Aktiviti</label>
+                  <input type="date" name="tarikh" value={formData.tarikh} onChange={handleInputChange} className="w-full bg-transparent font-bold outline-none text-sm" />
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Hari</label>
+                  <input type="text" readOnly value={formData.hari} className="w-full bg-transparent font-bold text-indigo-600 outline-none text-sm" />
                 </div>
               </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kehadiran Murid</label>
-                 <div className="grid grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-                  <div>
-                    <span className="text-[9px] font-bold block mb-1 uppercase text-blue-700">Lelaki (Hadir/Total)</span>
-                    <div className="flex gap-1">
-                      <input type="number" name="hadirLelaki" placeholder="0" value={formData.hadirLelaki} onChange={handleInputChange} className="w-1/2 p-2 text-xs border rounded-lg" />
-                      <input type="number" name="totalLelaki" placeholder="0" value={formData.totalLelaki} onChange={handleInputChange} className="w-1/2 p-2 text-xs border rounded-lg" />
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold block mb-1 uppercase text-blue-700">Perempuan (Hadir/Total)</span>
-                    <div className="flex gap-1">
-                      <input type="number" name="hadirPerempuan" placeholder="0" value={formData.hadirPerempuan} onChange={handleInputChange} className="w-1/2 p-2 text-xs border rounded-lg" />
-                      <input type="number" name="totalPerempuan" placeholder="0" value={formData.totalPerempuan} onChange={handleInputChange} className="w-1/2 p-2 text-xs border rounded-lg" />
-                    </div>
-                  </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Tempat / Lokasi</label>
+                  <input type="text" name="tempat" value={formData.tempat} onChange={handleInputChange} className="w-full bg-transparent font-bold outline-none text-sm" placeholder="DEWAN GEMILANG" />
                 </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intipati Aktiviti</label>
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Nilai Sivik (10 Minit)</span>
-                  <select name="nilaiSivik" value={formData.nilaiSivik} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- PILIH NILAI SIVIK --</option>
-                    {nilaiSivikOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Ringkasan Aktiviti</span>
-                  <textarea name="aktivitiDijalankan" placeholder="TERANGKAN AKTIVITI YANG DIJALANKAN..." value={formData.aktivitiDijalankan} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Refleksi & Impak</span>
-                  <textarea name="refleksiImpak" placeholder="KEBERKESANAN AKTIVITI..." value={formData.refleksiImpak} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2 tracking-widest"><Camera className="w-4 h-4 text-blue-600"/> Gambar Lampiran</label>
-                <div className="grid grid-cols-2 gap-4">
-                  {[0, 1].map((idx) => (
-                    <div key={idx} className="relative aspect-[4/3] border-2 border-dashed rounded-2xl flex items-center justify-center overflow-hidden bg-slate-50 hover:bg-slate-100 transition-colors group">
-                      {images[idx] ? (
-                        <div className="w-full h-full relative">
-                          <img src={images[idx]} className="w-full h-full object-cover" alt="Lampiran" />
-                          <button onClick={() => { const n = [...images]; n[idx] = null; setImages(n); }} className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transform scale-0 group-hover:scale-100 transition-transform"><Trash2 className="w-3 h-3"/></button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 pointer-events-none">
-                          <input type="file" accept="image/*" onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              const r = new FileReader();
-                              r.onload = (ev) => { const n = [...images]; n[idx] = ev.target.result; setImages(n); };
-                              r.readAsDataURL(file);
-                            }
-                          }} className="absolute inset-0 opacity-0 cursor-pointer pointer-events-auto" />
-                          <Camera className="text-slate-300 w-10 h-10 group-hover:text-blue-200 transition-colors"/>
-                          <span className="text-[9px] text-slate-400 font-black">MUAT NAIK</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Disediakan Oleh</span>
-                  <input type="text" name="disediakanOleh" placeholder="NAMA PENUH ANDA" value={formData.disediakanOleh} onChange={handleInputChange} className="w-full p-3 border rounded-xl text-sm uppercase focus:ring-2 focus:ring-blue-500" />
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Masa Pelaksanaan</label>
+                  <input type="text" name="masa" value={formData.masa} onChange={handleInputChange} className="w-full bg-transparent font-bold outline-none text-sm" />
                 </div>
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 border-t">
-              <button onClick={generatePDF} disabled={isGenerating || !libStatus.jspdf} className="w-full bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:shadow-xl disabled:bg-slate-400 disabled:from-slate-400 disabled:to-slate-400 transition-all active:scale-95">
-                {isGenerating ? "MENGUPAS DATA..." : <><Download className="w-5 h-5"/> JANAKAN LAPORAN PDF</>}
+            <section className="bg-slate-900 rounded-[2rem] p-7 shadow-xl">
+              <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] mb-5 flex items-center gap-3">
+                <span className="w-6 h-[2px] bg-indigo-500"></span> Kehadiran Guru Penasihat
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {formData.guruHadir.map((val, idx) => (
+                  <select key={idx} value={val} onChange={(e) => handleGuruChange(idx, e.target.value)} className="p-2.5 text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 transition-all">
+                    <option value="">- Guru {idx + 1} -</option>
+                    {senaraiGuru.map(g => <option key={g} value={g} className="bg-white text-slate-900">{g}</option>)}
+                  </select>
+                ))}
+              </div>
+            </section>
+
+            <section className="bg-slate-900 rounded-[2rem] p-7 shadow-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3">
+                  <span className="w-6 h-[2px] bg-emerald-500"></span> Statistik Kehadiran Murid
+                </h2>
+                <div className="px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+                   <span className="text-[9px] font-bold text-slate-400 uppercase">Jumlah: </span>
+                   <span className="text-[10px] font-black text-white">
+                    {(Number(formData.hadirLelaki) + Number(formData.hadirPerempuan)) || 0} / {(Number(formData.totalLelaki) + Number(formData.totalPerempuan)) || 0}
+                   </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'HADIR (L)', key: 'hadirLelaki', color: 'text-blue-400', border: 'border-blue-500/30' },
+                  { label: 'JUMLAH (L)', key: 'totalLelaki', color: 'text-slate-400', border: 'border-slate-700' },
+                  { label: 'HADIR (P)', key: 'hadirPerempuan', color: 'text-pink-400', border: 'border-pink-500/30' },
+                  { label: 'JUMLAH (P)', key: 'totalPerempuan', color: 'text-slate-400', border: 'border-slate-700' }
+                ].map(f => (
+                  <div key={f.key} className={`bg-slate-800/50 px-4 py-4 rounded-xl border ${f.border} group transition-all hover:bg-slate-800`}>
+                    <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-[0.1em]">{f.label}</label>
+                    <input 
+                      type="number" 
+                      name={f.key} 
+                      value={formData[f.key] === 0 ? '' : formData[f.key]} 
+                      onChange={handleInputChange} 
+                      placeholder="0"
+                      className={`w-full bg-transparent font-bold text-2xl outline-none ${f.color} text-center`} 
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Penerapan Nilai Sivik</label>
+                <select name="nilaiSivik" value={formData.nilaiSivik} onChange={handleInputChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all text-sm">
+                  <option value="">- Pilih Nilai Sivik -</option>
+                  {senaraiNilaiSivik.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Ringkasan Aktiviti</label>
+                <textarea name="aktivitiDijalankan" value={formData.aktivitiDijalankan} placeholder="" onChange={handleInputChange} className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl h-36 text-sm outline-none focus:border-indigo-500 transition-all"></textarea>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Refleksi & Impak</label>
+                <textarea name="refleksiImpak" value={formData.refleksiImpak} placeholder="" onChange={handleInputChange} className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl h-24 text-sm outline-none focus:border-indigo-500 transition-all"></textarea>
+              </div>
+            </div>
+
+            <section className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 text-center shadow-inner">
+              <label className={`inline-flex items-center gap-3 px-6 py-3 rounded-full font-black text-[10px] transition-all shadow-md mb-6 cursor-pointer tracking-wider ${images.length >= 2 ? 'bg-slate-200 text-slate-400' : 'bg-slate-900 text-white hover:bg-indigo-600'}`}>
+                <Icon name="camera" size={16} /> MUAT NAIK FOTO AKTIVITI ({images.length}/2)
+                <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" disabled={images.length >= 2} />
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {images.map((img, i) => (
+                  <div key={i} className="relative aspect-video rounded-2xl overflow-hidden border-4 border-white shadow-lg group">
+                    <img src={img} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="bg-red-500 text-white p-3 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                        <Icon name="trash" size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-100 pt-8">
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Disediakan Oleh</label>
+                <select name="disediakanOleh" value={formData.disediakanOleh} onChange={handleInputChange} className="w-full p-3.5 bg-slate-900 text-white rounded-xl font-bold text-[10px] outline-none shadow-md">
+                  <option value="">- Nama Guru -</option>
+                  {senaraiGuru.map(g => <option key={g} value={g} className="bg-white text-slate-900">{g}</option>)}
+                </select>
+              </div>
+              <div className="opacity-80">
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Disemak Oleh</label>
+                <div className="p-3.5 bg-slate-100 rounded-xl font-bold text-[10px] text-slate-600 border border-slate-200">{formData.disemakOleh}</div>
+              </div>
+              <div className="opacity-80">
+                <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Disahkan Oleh</label>
+                <div className="p-3.5 bg-slate-100 rounded-xl font-bold text-[10px] text-slate-600 border border-slate-200">{formData.disahkanOleh}</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 pb-4">
+              <button onClick={handleSavePDF} disabled={isGenerating || isSavingToDrive} className={`flex-1 py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all tracking-wider ${isGenerating ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl active:scale-95'}`}>
+                {isGenerating ? <><Icon name="loader" className="animate-spin-custom" /> MENJANA PDF...</> : <><Icon name="download" /> MUAT TURUN PDF</>}
+              </button>
+
+              <button onClick={handleDriveSave} disabled={isGenerating || isSavingToDrive} className={`flex-1 py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all tracking-wider ${isSavingToDrive ? 'bg-slate-200 text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl active:scale-95'}`}>
+                {isSavingToDrive ? <><Icon name="loader" className="animate-spin-custom" /> MENYIMPAN...</> : <><Icon name="cloud" /> SIMPAN KE DRIVE</>}
               </button>
             </div>
           </div>
+          
+          <footer className="bg-slate-50 py-4 px-6 text-center border-t border-slate-100">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">UNIT KOKURIKULUM SK SERI BANDI 2</p>
+          </footer>
         </div>
+      );
+    };
 
-        {/* Bahagian Preview Dokumen */}
-        <div className="lg:col-span-7 flex flex-col items-center">
-          <div className="bg-white shadow-2xl w-full max-w-[210mm] aspect-[1/1.414] p-[12mm] text-[9pt] flex flex-col border border-slate-300 overflow-hidden relative">
-            
-            <div className="flex flex-col items-center mb-6">
-              <img src={schoolLogoUrl} className="w-16 h-16 object-contain mb-3" alt="Logo" />
-              <h2 className="font-bold text-center uppercase text-blue-900 text-[10pt] tracking-tight leading-tight">{formData.jenisLaporan}</h2>
-              <div className="w-full h-[1.5pt] bg-blue-900 mt-3"></div>
-              <div className="w-full h-[0.5pt] bg-blue-900 mt-[1pt]"></div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-1 mb-4">
-              <div className="flex text-[8.5pt]"><span className="w-36 font-bold uppercase text-slate-500">Perjumpaan Kali</span><span className="mr-3">:</span><span className="font-bold">{formData.perjumpaanKali || '-'}</span></div>
-              <div className="flex text-[8.5pt] justify-between">
-                <div className="flex flex-1"><span className="w-36 font-bold uppercase text-slate-500">Tarikh / Hari</span><span className="mr-3">:</span><span className="font-medium">{formatDateDisplay(formData.tarikh)} ({formData.hari || '-'})</span></div>
-                <div className="flex w-1/3"><span className="w-16 font-bold uppercase text-slate-500">Masa</span><span className="mr-3">:</span><span>{formData.masa || '-'}</span></div>
-              </div>
-              <div className="flex text-[8.5pt]"><span className="w-36 font-bold uppercase text-slate-500">Tempat</span><span className="mr-3">:</span><span>{formData.tempat || '-'}</span></div>
-            </div>
-
-            <table className="w-full border-collapse mb-5">
-              <thead>
-                <tr className="bg-blue-900 text-white text-[7.5pt]">
-                  <th className="border-2 border-blue-900 p-1.5 w-10 uppercase">Bil.</th>
-                  <th className="border-2 border-blue-900 p-1.5 text-left pl-3 uppercase">Nama Guru Penasihat</th>
-                  <th className="border-2 border-blue-900 p-1.5 w-32 uppercase">Tandatangan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guruAktif.length > 0 ? guruAktif.map((n, i) => (
-                  <tr key={i} className="text-[7.5pt] border-b border-slate-200">
-                    <td className="border-x border-slate-200 p-1.5 text-center font-bold text-blue-800">{i+1}</td>
-                    <td className="border-x border-slate-200 p-1.5 pl-3 uppercase font-medium">{n}</td>
-                    <td className="border-x border-slate-200 p-1.5"></td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan="3" className="border p-4 text-center text-slate-300 italic">Maklumat guru tidak diisi</td></tr>
-                )}
-              </tbody>
-            </table>
-
-            <h4 className="font-bold text-blue-900 uppercase text-[7.5pt] mb-2 px-1 text-left">Kehadiran Murid:</h4>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                { label: 'LELAKI', val: totals.lelaki },
-                { label: 'PEREMPUAN', val: totals.perempuan },
-                { label: 'JUMLAH', val: totals.jumlah }
-              ].map((item, i) => (
-                <div key={i} className="border-2 border-blue-100 bg-blue-50/50 rounded-xl p-2 flex flex-col items-center">
-                  <span className="text-[6.5pt] font-bold text-slate-400">{item.label}</span>
-                  <span className="text-[11pt] font-black text-blue-900">{item.val}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div><h4 className="font-bold text-blue-900 uppercase text-[7.5pt] mb-1 flex items-center gap-2">Nilai Sivik (10 Minit):</h4><p className="text-slate-600 pl-4 italic text-[8pt] border-l-2 border-blue-100">{formData.nilaiSivik || '-'}</p></div>
-              <div><h4 className="font-bold text-blue-900 uppercase text-[7.5pt] mb-1">Aktiviti Dijalankan:</h4><p className="pl-4 text-[8pt] border-l-2 border-blue-100 leading-relaxed text-slate-700">{formData.aktivitiDijalankan || '-'}</p></div>
-              <div><h4 className="font-bold text-blue-900 uppercase text-[7.5pt] mb-1">Refleksi / Impak:</h4><p className="pl-4 text-[8pt] border-l-2 border-blue-100 text-slate-700">{formData.refleksiImpak || '-'}</p></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-auto mb-10">
-              {images.map((img, i) => img && (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div className="w-full aspect-[4/2.5] p-1 bg-white border-2 border-slate-100 rounded-xl shadow-sm overflow-hidden">
-                    <img src={img} className="w-full h-full object-cover" alt={`Lampiran ${i+1}`} />
-                  </div>
-                  <span className="text-[6pt] text-slate-400 font-bold uppercase">Gambar {i+1}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100">
-              {[
-                { label: 'Disediakan oleh,', name: formData.disediakanOleh, jawatan: formData.jawatanDisediakan },
-                { label: 'Disemak oleh,', name: formData.disemakOleh, jawatan: formData.jawatanDisemak },
-                { label: 'Disahkan oleh,', name: formData.disahkanOleh, jawatan: formData.jawatanDisahkan }
-              ].map((sig, i) => (
-                <div key={i} className="flex flex-col text-left">
-                  <span className="mb-10 text-[7pt] text-slate-500">{sig.label}</span>
-                  <div className="h-[0.5pt] bg-slate-400 mb-1 w-full"></div>
-                  <span className="font-bold uppercase text-[7pt] text-blue-950">({sig.name || '..........................'})</span>
-                  <span className="text-[6pt] text-slate-400 font-medium leading-tight">{sig.jawatan}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      `}</style>
-    </div>
-  );
-};
-
-export default App;
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
